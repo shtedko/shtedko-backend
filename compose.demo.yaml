@@ -1,0 +1,29 @@
+# Self-contained local demo with 4 FAKE retailer feeds, isolated from live data.
+# docker compose -f compose.demo.yaml up --build -d
+name: grocery-catalog-demo
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: grocery-catalog-api:local
+    init: true
+    restart: unless-stopped
+    command: ["-config", "/app/sources.demo.json", "-db", "/app/data/groceries.sqlite"]
+    ports:
+      - "${API_BIND_ADDRESS:-127.0.0.1}:${DEMO_PORT:-8081}:8080"
+    environment:
+      TZ: Europe/Skopje
+      SYNC_CRON: "${SYNC_CRON:-0 3 * * *}"
+      ADMIN_TOKEN: "${ADMIN_TOKEN:-}"
+    volumes:
+      - grocery_demo_data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+    stop_grace_period: 35s
+volumes:
+  grocery_demo_data:

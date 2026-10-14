@@ -1,0 +1,44 @@
+{
+  "cron": "0 3 * * *",
+  "timezone": "Europe/Skopje",
+  "rate_limit_milliseconds": 1500,
+  "max_pages": 500,
+  "sources": [
+    {
+      "id": "tinex-512",
+      "market": "tinex",
+      "name": "Tinex (org 512)",
+      "type": "tinex",
+      "url": "https://ceni.tinex.mk/",
+      "org": "512"
+    },
+    {
+      "id": "ramstore-vodno-2",
+      "market": "ramstore",
+      "name": "Ramstore Vodno 2",
+      "type": "ramstore_html",
+      "url": "https://ramstore.com.mk/marketi/ramstore-vodno-2/"
+    },
+    {
+      "id": "ramstore-directory",
+      "market": "ramstore",
+      "name": "Ramstore store directory (discovery)",
+      "type": "ramstore_directory",
+      "url": "https://ramstore.com.mk/marketi/"
+    },
+    {
+      "id": "kam-import",
+      "market": "kam",
+      "name": "KAM (CSV price-list import)",
+      "type": "csv",
+      "url": "file://imports/kam.csv"
+    },
+    {
+      "id": "stokomak-import",
+      "market": "stokomak",
+      "name": "Stokomak (CSV price-list import)",
+      "type": "csv",
+      "url": "file://imports/stokomak.csv"
+    }
+  ]
+}
