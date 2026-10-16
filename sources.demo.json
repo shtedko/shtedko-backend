@@ -1,0 +1,10 @@
+{
+  "cron": "0 3 * * *",
+  "timezone": "Europe/Skopje",
+  "sources": [
+    {"id":"tinex-demo","market":"tinex","name":"Tinex DEMO","type":"csv","url":"file://demo/tinex.csv"},
+    {"id":"kam-demo","market":"kam","name":"KAM DEMO","type":"csv","url":"file://demo/kam.csv"},
+    {"id":"ramstore-demo","market":"ramstore","name":"Ramstore DEMO","type":"csv","url":"file://demo/ramstore.csv"},
+    {"id":"stokomak-demo","market":"stokomak","name":"Stokomak DEMO","type":"csv","url":"file://demo/stokomak.csv"}
+  ]
+}

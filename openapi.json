@@ -1,0 +1,2892 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Grocery Multi-Store Price Comparison API",
+    "version": "1.2.0",
+    "description": "REST API for supermarket prices, rule-based candidate product comparisons and complete-basket optimization. Prices are estimates and retailer crawling completeness is not guaranteed. All values are Macedonian denar (MKD); integer *_minor fields denote hundredths of one MKD. Group matches are NOT verified identical products."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Same-origin deployment (replace with an HTTPS URL when generating a production SDK)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Service readiness"
+    },
+    {
+      "name": "Catalog",
+      "description": "Stores and product listings"
+    },
+    {
+      "name": "Prices",
+      "description": "Observed historical prices"
+    },
+    {
+      "name": "Comparison",
+      "description": "Unverified equivalent-product candidates"
+    },
+    {
+      "name": "Baskets",
+      "description": "Anonymous basket quotes"
+    },
+    {
+      "name": "Authentication",
+      "description": "Register, log in and manage user sessions"
+    },
+    {
+      "name": "Saved baskets",
+      "description": "Account-owned and legacy token-protected basket CRUD"
+    },
+    {
+      "name": "Operations",
+      "description": "Synchronization health and control"
+    }
+  ],
+  "paths": {
+    "/healthz": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Database health probe",
+        "operationId": "getHealth",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service or operation unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/markets": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "List supermarket chains",
+        "operationId": "listMarkets",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketList"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/stores": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "List physical store sources and sync status",
+        "operationId": "listStores",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreList"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/categories": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "List detected grocery categories",
+        "operationId": "listCategories",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryList"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/products": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "Search and filter retail product listings",
+        "operationId": "listProducts",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "milk"
+            }
+          },
+          {
+            "name": "market",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "kam"
+            }
+          },
+          {
+            "name": "store",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Store ID, not supermarket chain."
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Name search with normalized Macedonian/Latin matching."
+          },
+          {
+            "name": "available",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "include_inactive",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0,
+              "maximum": 1000000,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query or JSON body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/products/{id}": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "Get one retailer listing",
+        "operationId": "getProduct",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque identifier"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/products/{id}/price-history": {
+      "get": {
+        "tags": [
+          "Prices"
+        ],
+        "summary": "Observed price change history",
+        "operationId": "getPriceHistory",
+        "description": "History includes observed changed snapshots, not a guarantee of checkout pricing on historic dates.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque identifier"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 500,
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceHistory"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query or JSON body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/comparison-groups": {
+      "get": {
+        "tags": [
+          "Comparison"
+        ],
+        "summary": "Discover unverified product comparison groups",
+        "operationId": "listComparisonGroups",
+        "description": "Comparison keys are heuristically generated; do not imply SKU identity.",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "milk"
+            }
+          },
+          {
+            "name": "min_markets",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 2
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComparisonGroups"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query or JSON body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/comparisons": {
+      "get": {
+        "tags": [
+          "Comparison"
+        ],
+        "summary": "Compare offers for a requested physical amount",
+        "operationId": "compareOffers",
+        "description": "Ranked by whole pack checkout cost, not by a fractional price; offers belong to unverified candidate groups.",
+        "parameters": [
+          {
+            "name": "comparison_key",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 300
+            },
+            "description": "Candidate comparison key from /v1/comparison-groups."
+          },
+          {
+            "name": "amount",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "minimum": 0,
+              "exclusiveMinimum": true,
+              "maximum": 100000000
+            },
+            "description": "Physical amount requested."
+          },
+          {
+            "name": "unit",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "g",
+                "ml",
+                "pcs"
+              ]
+            }
+          },
+          {
+            "name": "max_age_hours",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0,
+              "maximum": 87600,
+              "default": 168
+            },
+            "description": "0 disables price freshness filter."
+          },
+          {
+            "name": "include_unknown_availability",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "markets",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated market codes, e.g. tinex,kam."
+          },
+          {
+            "name": "store_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated physical store IDs."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComparisonOffers"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query or JSON body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/basket/quote": {
+      "post": {
+        "tags": [
+          "Baskets"
+        ],
+        "summary": "Calculate the cheapest single-store and split-store basket",
+        "operationId": "quoteBasket",
+        "description": "Stateless quote. Exact listings or opt-in unverified comparison groups. Null totals denote incomplete baskets. Travel costs are not considered.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuoteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query or JSON body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/register": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Register an account and issue a bearer token",
+        "operationId": "registerAccount",
+        "description": "Password must be at least 12 UTF-8 bytes. Account is not email verified.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Credentials"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSession"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query or JSON body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict or request already in progress",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Log in and issue a bearer token",
+        "operationId": "login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Credentials"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSession"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query or JSON body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization required or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Revoke current bearer session",
+        "operationId": "logout",
+        "responses": {
+          "204": {
+            "description": "Deleted successfully; no response body"
+          },
+          "401": {
+            "description": "Authorization required or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "UserBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/auth/me": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Get current account",
+        "operationId": "currentAccount",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization required or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "UserBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/me/baskets": {
+      "get": {
+        "tags": [
+          "Saved baskets"
+        ],
+        "summary": "List baskets owned by the logged-in user",
+        "operationId": "listOwnBaskets",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyBaskets"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization required or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "UserBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/baskets/{id}/claim": {
+      "post": {
+        "tags": [
+          "Saved baskets"
+        ],
+        "summary": "Claim a legacy anonymous basket with basket token",
+        "operationId": "claimBasket",
+        "description": "Requires both Authorization: Bearer and X-Basket-Token.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque identifier"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimedBasket"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization required or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict or request already in progress",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "UserBearer": [],
+            "BasketToken": []
+          }
+        ]
+      }
+    },
+    "/v1/baskets": {
+      "post": {
+        "tags": [
+          "Saved baskets"
+        ],
+        "summary": "Create an account-owned or anonymous basket",
+        "operationId": "createBasket",
+        "description": "With bearer token creates account-owned basket; without bearer token creates legacy anonymous basket and returns X-Basket-Token.",
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedBasket"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization required or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "UserBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/baskets/{id}": {
+      "get": {
+        "tags": [
+          "Saved baskets"
+        ],
+        "summary": "Read saved basket",
+        "operationId": "getBasket",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque identifier"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedBasket"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization required or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "UserBearer": []
+          },
+          {
+            "BasketToken": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Saved baskets"
+        ],
+        "summary": "Delete saved basket and its items",
+        "operationId": "deleteBasket",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque identifier"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted successfully; no response body"
+          },
+          "401": {
+            "description": "Authorization required or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "UserBearer": []
+          },
+          {
+            "BasketToken": []
+          }
+        ]
+      }
+    },
+    "/v1/baskets/{id}/items": {
+      "post": {
+        "tags": [
+          "Saved baskets"
+        ],
+        "summary": "Add one saved basket line",
+        "operationId": "addBasketItem",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque identifier"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewBasketItem"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BasketItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query or JSON body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization required or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict or request already in progress",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "UserBearer": []
+          },
+          {
+            "BasketToken": []
+          }
+        ]
+      }
+    },
+    "/v1/baskets/{id}/items/{item_id}": {
+      "patch": {
+        "tags": [
+          "Saved baskets"
+        ],
+        "summary": "Update saved basket line amount or quantity",
+        "operationId": "updateBasketItem",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque identifier"
+          },
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Saved-basket item ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchBasketItem"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BasketItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query or JSON body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization required or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "UserBearer": []
+          },
+          {
+            "BasketToken": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Saved baskets"
+        ],
+        "summary": "Remove saved basket line",
+        "operationId": "deleteBasketItem",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque identifier"
+          },
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Saved-basket item ID"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted successfully; no response body"
+          },
+          "401": {
+            "description": "Authorization required or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "UserBearer": []
+          },
+          {
+            "BasketToken": []
+          }
+        ]
+      }
+    },
+    "/v1/baskets/{id}/quote": {
+      "post": {
+        "tags": [
+          "Saved baskets"
+        ],
+        "summary": "Optimize a saved basket",
+        "operationId": "quoteSavedBasket",
+        "description": "Body is required even if empty ({}). Items are taken from the saved basket, not supplied here.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque identifier"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuoteOptions"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query or JSON body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization required or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "UserBearer": []
+          },
+          {
+            "BasketToken": []
+          }
+        ]
+      }
+    },
+    "/v1/sync-runs": {
+      "get": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Recent collection job outcomes",
+        "operationId": "listSyncRuns",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 30
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncRuns"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query or JSON body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/sync": {
+      "post": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Run collection on demand",
+        "operationId": "triggerSync",
+        "description": "This may take a long time depending on retailer source size; disable if ADMIN_TOKEN is not configured.",
+        "parameters": [
+          {
+            "name": "store",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional configured physical store ID; absent triggers all stores."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization required or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict or request already in progress",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream collection failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service or operation unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "UserBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "opaque",
+        "description": "User session returned by register/login. Store in OS secure storage; expires after 7 days."
+      },
+      "BasketToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Basket-Token",
+        "description": "Per-basket secret returned only once from POST /v1/baskets. Do not send as bearer token."
+      },
+      "AdminBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "ADMIN_TOKEN environment variable; only required for manual synchronization."
+      }
+    },
+    "schemas": {
+      "APIError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "invalid request"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "Market": {
+        "type": "object",
+        "properties": {
+          "market": {
+            "type": "string",
+            "example": "tinex"
+          },
+          "stores": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "active_products": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "MarketList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Market"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "Store": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "tinex-1"
+          },
+          "market": {
+            "type": "string",
+            "example": "tinex"
+          },
+          "name": {
+            "type": "string"
+          },
+          "source_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "description": "Ingestion health or current last-sync state."
+          },
+          "last_success": {
+            "type": "string",
+            "description": "May be absent or null until the first successful crawl.",
+            "nullable": true
+          },
+          "last_error": {
+            "type": "string",
+            "nullable": true
+          },
+          "active_products": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "id",
+          "market",
+          "name",
+          "active_products"
+        ]
+      },
+      "StoreList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Store"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "CategoryCount": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "example": "milk"
+          },
+          "products": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "stores": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "category",
+          "products",
+          "stores"
+        ]
+      },
+      "CategoryList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CategoryCount"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Opaque application-defined ID. Do not infer its structure."
+          },
+          "name": {
+            "type": "string",
+            "example": "Млеко УХТ 3.2% 1Л"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
+            "type": "string",
+            "example": "milk"
+          },
+          "comparison_key": {
+            "type": "string",
+            "description": "Rule-generated, unverified equivalence candidate; not a verified identical SKU.",
+            "nullable": true
+          },
+          "size_value": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "size_unit": {
+            "type": "string",
+            "description": "Normalized size unit, typically g, ml, pcs.",
+            "nullable": true
+          },
+          "price_mkd": {
+            "type": "number",
+            "description": "Displayed price in Macedonian denars. For financial computations prefer quote *_minor integer fields.",
+            "format": "double"
+          },
+          "regular_price_mkd": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "MKD"
+            ]
+          },
+          "available": {
+            "type": "boolean",
+            "description": "Null means unknown availability.",
+            "nullable": true
+          },
+          "source_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "source_updated_at": {
+            "type": "string",
+            "description": "Source timestamp/date as supplied by retailer (format varies).",
+            "nullable": true
+          },
+          "last_seen_at": {
+            "type": "string",
+            "nullable": true
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "store_id": {
+            "type": "string"
+          },
+          "store_name": {
+            "type": "string"
+          },
+          "market": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "category",
+          "price_mkd",
+          "currency",
+          "store_id",
+          "store_name",
+          "market"
+        ]
+      },
+      "ProductList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Product"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ]
+      },
+      "PriceObservation": {
+        "type": "object",
+        "properties": {
+          "price_minor": {
+            "type": "integer",
+            "description": "Price in 1/100 MKD",
+            "format": "int64"
+          },
+          "price_mkd": {
+            "type": "number",
+            "format": "double"
+          },
+          "observed_at": {
+            "type": "string"
+          },
+          "store_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "price_minor",
+          "price_mkd",
+          "observed_at",
+          "store_id"
+        ]
+      },
+      "PriceHistory": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "MKD"
+            ]
+          },
+          "observations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PriceObservation"
+            }
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id",
+          "currency",
+          "observations",
+          "note"
+        ]
+      },
+      "ComparisonGroup": {
+        "type": "object",
+        "properties": {
+          "comparison_key": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "products": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "markets": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "min_price_mkd": {
+            "type": "number",
+            "format": "double"
+          },
+          "max_price_mkd": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "required": [
+          "comparison_key",
+          "category",
+          "products",
+          "markets",
+          "min_price_mkd",
+          "max_price_mkd"
+        ]
+      },
+      "ComparisonGroups": {
+        "type": "object",
+        "properties": {
+          "match_quality": {
+            "type": "string",
+            "enum": [
+              "candidate_only_not_verified_identical_skus"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ComparisonGroup"
+            }
+          }
+        },
+        "required": [
+          "match_quality",
+          "items"
+        ]
+      },
+      "BasketItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Server-generated in saved baskets; optional in stateless quotes."
+          },
+          "product_id": {
+            "type": "string",
+            "description": "Retailer-specific listing ID; use with quantity only."
+          },
+          "comparison_key": {
+            "type": "string",
+            "description": "Unverified comparable group; use with amount and unit only."
+          },
+          "quantity": {
+            "type": "integer",
+            "description": "Number of whole retail packs for product_id.",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "amount": {
+            "type": "number",
+            "description": "Quantity in base units; g, ml or pcs",
+            "format": "double",
+            "exclusiveMinimum": true,
+            "minimum": 0,
+            "maximum": 100000000
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "g",
+              "ml",
+              "pcs"
+            ]
+          }
+        },
+        "description": "Choose exactly one: product_id+quantity, OR comparison_key+amount+unit. When using comparison_key, set allow_candidate_matches=true."
+      },
+      "NewBasketItem": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string"
+          },
+          "comparison_key": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "amount": {
+            "type": "number",
+            "description": "Quantity in base units; g, ml or pcs",
+            "format": "double",
+            "exclusiveMinimum": true,
+            "minimum": 0,
+            "maximum": 100000000
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "g",
+              "ml",
+              "pcs"
+            ]
+          }
+        },
+        "description": "Specify product_id + quantity or comparison_key + amount + unit; do not send id.",
+        "additionalProperties": false
+      },
+      "PatchBasketItem": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "amount": {
+            "type": "number",
+            "description": "Quantity in base units; g, ml or pcs",
+            "format": "double",
+            "exclusiveMinimum": true,
+            "minimum": 0,
+            "maximum": 100000000
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "g",
+              "ml",
+              "pcs"
+            ]
+          }
+        },
+        "description": "Only applicable fields of an existing basket line. At least one field should be supplied.",
+        "minProperties": 1,
+        "additionalProperties": false
+      },
+      "QuoteOptions": {
+        "type": "object",
+        "properties": {
+          "markets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "description": "Allowed market codes; empty means all."
+          },
+          "store_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "description": "Allowed store IDs; empty means all."
+          },
+          "allow_candidate_matches": {
+            "type": "boolean",
+            "description": "Required opt-in for unverified comparison_key groups and candidate substitutions.",
+            "default": false
+          },
+          "include_unknown_availability": {
+            "type": "boolean",
+            "description": "Treat unknown-stock listings as eligible; never includes known out-of-stock.",
+            "default": false
+          },
+          "max_age_hours": {
+            "type": "integer",
+            "description": "0 disables freshness limit.",
+            "format": "int64",
+            "minimum": 0,
+            "maximum": 87600,
+            "default": 168
+          },
+          "max_stores": {
+            "type": "integer",
+            "description": "0 unlimited, 1–3 limits visits. If constrained, at most 40 eligible stores supported.",
+            "format": "int64",
+            "minimum": 0,
+            "maximum": 3,
+            "default": 0
+          }
+        },
+        "description": "Options for saved basket quotes; items are loaded from the saved basket.",
+        "additionalProperties": false
+      },
+      "QuoteRequest": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BasketItem"
+            },
+            "minItems": 1,
+            "maxItems": 50
+          },
+          "markets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "description": "Allowed market codes; empty means all."
+          },
+          "store_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "description": "Allowed store IDs; empty means all."
+          },
+          "allow_candidate_matches": {
+            "type": "boolean",
+            "description": "Required opt-in for unverified comparison_key groups and candidate substitutions.",
+            "default": false
+          },
+          "include_unknown_availability": {
+            "type": "boolean",
+            "description": "Treat unknown-stock listings as eligible; never includes known out-of-stock.",
+            "default": false
+          },
+          "max_age_hours": {
+            "type": "integer",
+            "description": "0 disables freshness limit.",
+            "format": "int64",
+            "minimum": 0,
+            "maximum": 87600,
+            "default": 168
+          },
+          "max_stores": {
+            "type": "integer",
+            "description": "0 unlimited, 1–3 limits visits. If constrained, at most 40 eligible stores supported.",
+            "format": "int64",
+            "minimum": 0,
+            "maximum": 3,
+            "default": 0
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "description": "Calculate least-cost whole-package basket; prices are indicative and cross-brand groups are unverified.",
+        "additionalProperties": false,
+        "example": {
+          "items": [
+            {
+              "comparison_key": "milk|unspecified|uht|3.2|plain|normal",
+              "amount": 2000,
+              "unit": "ml"
+            },
+            {
+              "comparison_key": "bread|white",
+              "amount": 500,
+              "unit": "g"
+            }
+          ],
+          "allow_candidate_matches": true,
+          "max_stores": 2
+        }
+      },
+      "QuoteLine": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "product_id": {
+            "type": "string"
+          },
+          "store_id": {
+            "type": "string"
+          },
+          "store_name": {
+            "type": "string"
+          },
+          "market": {
+            "type": "string"
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "match_quality": {
+            "type": "string",
+            "enum": [
+              "exact_retailer_listing",
+              "unverified_comparison_group"
+            ]
+          },
+          "packs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pack_size": {
+            "type": "number",
+            "format": "double"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "requested_amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "purchased_amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "unit_price_minor": {
+            "type": "integer",
+            "description": "Price for one retail pack in 1/100 MKD",
+            "format": "int64"
+          },
+          "unit_price_basis": {
+            "type": "string",
+            "description": "kg, l, or pc when available."
+          },
+          "normalized_unit_price_mkd": {
+            "type": "number",
+            "format": "double"
+          },
+          "line_total_minor": {
+            "type": "integer",
+            "description": "Actual cost of whole packs, in 1/100 MKD",
+            "format": "int64"
+          },
+          "line_total_mkd": {
+            "type": "number",
+            "format": "double"
+          },
+          "source_updated_at": {
+            "type": "string"
+          },
+          "last_seen_at": {
+            "type": "string"
+          },
+          "availability": {
+            "type": "string",
+            "enum": [
+              "in_stock",
+              "out_of_stock",
+              "unknown"
+            ]
+          }
+        },
+        "required": [
+          "item_id",
+          "product_id",
+          "store_id",
+          "store_name",
+          "market",
+          "product_name",
+          "match_quality",
+          "packs",
+          "unit_price_minor",
+          "line_total_minor",
+          "line_total_mkd",
+          "last_seen_at",
+          "availability"
+        ]
+      },
+      "StoreQuote": {
+        "type": "object",
+        "properties": {
+          "store_id": {
+            "type": "string"
+          },
+          "store_name": {
+            "type": "string"
+          },
+          "market": {
+            "type": "string"
+          },
+          "complete": {
+            "type": "boolean"
+          },
+          "covered_items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "required_items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "missing_items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "total_minor": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "total_mkd": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "partial_total_minor": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuoteLine"
+            }
+          }
+        },
+        "required": [
+          "store_id",
+          "store_name",
+          "market",
+          "complete",
+          "covered_items",
+          "required_items",
+          "missing_items",
+          "total_minor",
+          "total_mkd",
+          "partial_total_minor",
+          "lines"
+        ],
+        "description": "Only use total_minor/total_mkd when complete=true. Missing items give null totals."
+      },
+      "BasketResult": {
+        "type": "object",
+        "properties": {
+          "complete": {
+            "type": "boolean"
+          },
+          "total_minor": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "total_mkd": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "stores": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "missing_items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuoteLine"
+            },
+            "nullable": true
+          }
+        },
+        "required": [
+          "complete",
+          "total_minor",
+          "total_mkd",
+          "stores",
+          "missing_items",
+          "lines"
+        ],
+        "description": "Split-basket result. Incomplete baskets have null totals."
+      },
+      "QuoteResponse": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string",
+            "enum": [
+              "MKD"
+            ]
+          },
+          "calculated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "match_policy": {
+            "type": "string",
+            "enum": [
+              "exact_retailer_listing_only",
+              "includes_unverified_comparison_groups"
+            ]
+          },
+          "freshness_limit_hours": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "cheapest_single_store": {
+            "type": "object",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StoreQuote"
+              }
+            ]
+          },
+          "cheapest_split_basket": {
+            "$ref": "#/components/schemas/BasketResult"
+          },
+          "store_options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StoreQuote"
+            }
+          },
+          "savings_minor": {
+            "type": "integer",
+            "description": "Only set when single and split quotes are both complete.",
+            "format": "int64"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "currency",
+          "calculated_at",
+          "match_policy",
+          "freshness_limit_hours",
+          "cheapest_single_store",
+          "cheapest_split_basket",
+          "store_options",
+          "warnings"
+        ]
+      },
+      "ComparisonOffers": {
+        "type": "object",
+        "properties": {
+          "comparison_key": {
+            "type": "string"
+          },
+          "match_quality": {
+            "type": "string",
+            "enum": [
+              "unverified_comparison_group"
+            ]
+          },
+          "requested_amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "ml",
+              "g",
+              "pcs"
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "MKD"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuoteLine"
+            }
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "notice": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "comparison_key",
+          "match_quality",
+          "requested_amount",
+          "unit",
+          "currency",
+          "items",
+          "count",
+          "notice"
+        ]
+      },
+      "CreatedBasket": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "basket_token": {
+            "type": "string",
+            "description": "Only for anonymous baskets.",
+            "nullable": true
+          },
+          "owner": {
+            "type": "string",
+            "enum": [
+              "anonymous",
+              "account"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "owner",
+          "created_at"
+        ]
+      },
+      "Credentials": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "password": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 1024,
+            "format": "password"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "additionalProperties": false
+      },
+      "Account": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "created_at"
+        ]
+      },
+      "AuthSession": {
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "description": "Opaque secret, only returned at login or registration."
+          },
+          "token_type": {
+            "type": "string",
+            "enum": [
+              "Bearer"
+            ]
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expires_in": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "user": {
+            "$ref": "#/components/schemas/Account"
+          }
+        },
+        "required": [
+          "access_token",
+          "token_type",
+          "expires_at",
+          "expires_in"
+        ]
+      },
+      "MyBasketSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "updated_at",
+          "items"
+        ]
+      },
+      "MyBaskets": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MyBasketSummary"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "ClaimedBasket": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string",
+            "enum": [
+              "account"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "owner"
+        ]
+      },
+      "SavedBasket": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BasketItem"
+            }
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "id",
+          "items",
+          "count"
+        ]
+      },
+      "SyncRun": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "store_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "rows_count": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "finished_at": {
+            "type": "string",
+            "nullable": true
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "SyncRuns": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SyncRun"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "SyncResult": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "completed"
+            ]
+          },
+          "store": {
+            "type": "string",
+            "description": "Empty string if all configured stores synchronized."
+          }
+        },
+        "required": [
+          "status",
+          "store"
+        ]
+      }
+    }
+  }
+}

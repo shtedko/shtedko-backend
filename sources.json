@@ -1,0 +1,104 @@
+{
+  "cron": "0 3 * * *",
+  "timezone": "Europe/Skopje",
+  "rate_limit_milliseconds": 1500,
+  "max_pages": 5000,
+  "sources": [
+    {
+      "id": "tinex-512",
+      "market": "tinex",
+      "name": "Tinex (org 512)",
+      "type": "tinex",
+      "url": "https://ceni.tinex.mk/",
+      "org": "512"
+    },
+    {
+      "id": "ramstore-vodno-2",
+      "market": "ramstore",
+      "name": "Ramstore Vodno 2",
+      "type": "ramstore_html",
+      "url": "https://ramstore.com.mk/marketi/ramstore-vodno-2/"
+    },
+    {
+      "id": "ramstore-directory",
+      "market": "ramstore",
+      "name": "Ramstore store directory (discovery)",
+      "type": "ramstore_directory",
+      "url": "https://ramstore.com.mk/marketi/"
+    },
+    {
+      "id": "vero-directory",
+      "market": "vero",
+      "name": "Vero/Jumbo price-list directory",
+      "type": "vero_directory",
+      "url": "https://pricelist.vero.com.mk/"
+    },
+    {
+      "id": "kam-public-offers",
+      "market": "kam",
+      "name": "KAM public priced offers (PARTIAL, not branch inventory)",
+      "type": "kam_offers",
+      "url": "https://www.kam.com.mk/"
+    },
+    {
+      "id": "stokomak-price-directory",
+      "market": "stokomak",
+      "name": "Stokomak official price directory",
+      "type": "price_portal_directory",
+      "url": "https://stokomak.proverkanaceni.mk/",
+      "org": "5"
+    },
+    {
+      "id": "zito-price-directory",
+      "market": "zito",
+      "name": "Zito official price directory",
+      "type": "price_portal_directory",
+      "url": "https://zito.proverkanaceni.mk/",
+      "org": "13"
+    },
+    {
+      "id": "kipper-branch-directory",
+      "market": "kipper",
+      "name": "Kipper physical branches: price-checking pages (HTML, fail-closed)",
+      "type": "kipper_directory",
+      "url": "https://kipper.mk/mk/category/market/"
+    },
+    {
+      "id": "kipper-recent-directory",
+      "market": "kipper",
+      "name": "Kipper most recent branches (dynamic directory subset)",
+      "type": "kipper_directory",
+      "url": "https://kipper.mk/mk/marketet/"
+    },
+    {
+      "id": "kipper-online",
+      "market": "kipper-online",
+      "name": "Kipper online shop (priced listings only; experimental)",
+      "type": "woo_shop",
+      "url": "https://kipper.mk/mk/shop/"
+    },
+    {
+      "id": "bigshop-online",
+      "market": "bigshop-online",
+      "name": "BigShop Žito-linked ONLINE catalog (not physical prices; experimental)",
+      "type": "woo_shop",
+      "url": "https://bigshop.mk/shop/"
+    },
+    {
+      "id": "spar-store-directory",
+      "market": "spar",
+      "name": "SPAR official store price lists (JS; browser-assisted)",
+      "type": "spar_directory",
+      "url": "https://spar.mk/pricelist",
+      "max_stores": 2
+    },
+    {
+      "id": "kitgo-store-directory",
+      "market": "kitgo",
+      "name": "Super Kit-Go official store price lists (JS; browser-assisted)",
+      "type": "kitgo_directory",
+      "url": "https://www.superkitgo.mk/cenovnik.html",
+      "max_stores": 2
+    }
+  ]
+}

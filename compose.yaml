@@ -1,0 +1,54 @@
+# Docker Desktop for Windows: Linux containers + WSL 2 backend.
+# From PowerShell: docker compose up --build -d
+name: grocery-catalog
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: grocery-catalog-api:local
+    init: true
+    restart: unless-stopped
+    ports:
+      # Localhost-only by default. For a physical phone, use API_BIND_ADDRESS=0.0.0.0
+      # only on a trusted network; add HTTPS and authentication before public use.
+      - "${API_BIND_ADDRESS:-127.0.0.1}:${API_PORT:-8080}:8080"
+    depends_on:
+      browser:
+        condition: service_healthy
+    environment:
+      BROWSER_BRIDGE_URL: http://browser:3333
+      TZ: Europe/Skopje
+      SYNC_CRON: "${SYNC_CRON:-0 3 * * *}"
+      ADMIN_TOKEN: "${ADMIN_TOKEN:-}"
+    volumes:
+      # Docker-managed named volume; no Windows C:\ path or SQLite file bind mount.
+      - grocery_data:/app/data
+      # Optional CSV feeds for other retailers. KAM/Stokomak/Zito/Kipper are web crawlers.
+      - type: bind
+        source: ./imports
+        target: /app/imports
+        read_only: true
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+    stop_grace_period: 35s
+  browser:
+    build:
+      context: ./browser
+      dockerfile: Dockerfile
+    init: true
+    restart: unless-stopped
+    # Internal bridge: no ports published on Windows or the local network.
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3333/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    shm_size: "1gb"
+volumes:
+  grocery_data:
